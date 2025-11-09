@@ -1,0 +1,198 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencloud-deployment
+  namespace: opencloud
+  labels:
+    app: opencloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opencloud
+  template:
+    metadata:
+      labels:
+        app: opencloud
+    spec:
+      securityContext:
+        fsGroup: 1003   # Replace it with your own user GID
+      containers:
+      - name: opencloud
+        image: opencloudeu/opencloud-rolling:latest
+        envFrom:
+          - configMapRef:
+              name: opencloud-configmap
+          - secretRef:
+              name: opencloud-secret
+        ports:
+        - containerPort: 9200
+          name: http-proxy
+        - containerPort: 9233 
+          name: nats
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http-proxy
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http-proxy
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        command: ["/bin/sh"]
+        args: ["-c", "opencloud init || true; opencloud server"]
+        volumeMounts:
+        - name: opencloud-config
+          mountPath: /etc/opencloud
+        - name: opencloud-data
+          mountPath: /var/lib/opencloud
+        - name: opencloud-apps
+          mountPath: /var/lib/opencloud/web/assets/apps
+        - name: config-files
+          mountPath: /etc/opencloud/csp.yaml
+          subPath: csp.yaml
+        - name: config-files
+          mountPath: /etc/opencloud/banned-password-list.txt
+          subPath: banned-password-list.txt
+
+      volumes:
+      - name: opencloud-config
+        persistentVolumeClaim:
+          claimName: opencloud-config-pvc
+      - name: opencloud-data
+        persistentVolumeClaim:
+          claimName: opencloud-data-pvc
+      - name: opencloud-apps
+        persistentVolumeClaim:
+          claimName: opencloud-apps-pvc
+      - name: config-files
+        configMap:
+          name: opencloud-configmap
+          items:
+            - key: csp.yaml
+              path: csp.yaml
+            - key: banned-password-list.txt
+              path: banned-password-list.txt
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collabora-deployment
+  namespace: opencloud
+  labels:
+    app: collabora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collabora
+  template:
+    metadata:
+      labels:
+        app: collabora
+    spec:
+      securityContext:
+        fsGroup: 1003  # Replace it with your own user GID
+      containers:
+      - name: collabora
+        image: collabora/code:25.04.4.2.1
+        envFrom:
+          - configMapRef:
+              name: collabora-configmap
+          - secretRef:
+              name: collabora-secret
+        ports:
+        - containerPort: 9980
+          name: http-cool
+        securityContext:
+          capabilities:
+            add: ["MKNOD"]
+        command: ['/bin/bash', '-c']
+        args: ['coolconfig generate-proof-key && /start-collabora-online.sh']
+        readinessProbe:
+          exec:
+            command:
+            - "curl"
+            - "-f"
+            - "http://localhost:9980/hosting/discovery"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collaboration-deployment
+  namespace: opencloud
+  labels:
+    app: collaboration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collaboration
+  template:
+    metadata:
+      labels:
+        app: collaboration
+    spec:
+      initContainers:
+      - name: wait-for-dependencies
+        image: busybox:1.36
+        command: ['sh', '-c']
+        args:
+          - |
+            echo "--- Starting dependency check ---"
+
+            echo "Waiting for service 'opencloud-proxy-svc' on port 9200..."
+            until nc -z -w 5 opencloud-proxy-svc.opencloud.svc.cluster.local 9200; do
+              echo "Service 'opencloud-proxy-svc' is not yet reachable. Retrying in 5 seconds..."
+              sleep 5
+            done
+            echo "Service 'opencloud-proxy-svc' OK."
+
+            echo "Waiting for service 'collabora-svc' on port 9980..."
+            until nc -z -w 5 collabora-svc.opencloud.svc.cluster.local 9980; do
+              echo "Service 'collabora-svc' is not yet reachable. Retrying in 5 seconds..."
+              sleep 5
+            done
+            echo "Service 'collabora-svc' OK."
+
+            echo "--- All dependencies are ready. Starting main container. ---"
+      containers:
+      - name: collaboration
+        image: opencloudeu/opencloud-rolling:latest
+        envFrom:
+          - configMapRef:
+              name: collaboration-configmap
+        ports:
+        - containerPort: 9300
+          name: http-wopi
+        readinessProbe:
+          tcpSocket:
+            port: http-wopi
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: http-wopi
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        command: ["/bin/sh"]
+        args: ["-c", "opencloud collaboration server"]
+        volumeMounts:
+        - name: opencloud-config
+          mountPath: /etc/opencloud
+
+      volumes:
+      - name: opencloud-config
+        persistentVolumeClaim:
+          claimName: opencloud-config-pvc

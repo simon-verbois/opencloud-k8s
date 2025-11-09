@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opencloud-proxy-svc
+  namespace: opencloud
+spec:
+  selector:
+    app: opencloud
+  ports:
+  - name: http-proxy
+    port: 9200 
+    targetPort: http-proxy
+  - name: nats
+    port: 9233
+    targetPort: nats
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: collabora-svc
+  namespace: opencloud
+spec:
+  selector:
+    app: collabora
+  ports:
+  - name: http-cool
+    port: 9980 
+    targetPort: http-cool
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: collaboration-wopi-svc
+  namespace: opencloud
+spec:
+  selector:
+    app: collaboration
+  ports:
+  - name: http-wopi
+    port: 9300 
+    targetPort: http-wopi

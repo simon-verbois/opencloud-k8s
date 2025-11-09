@@ -1,0 +1,104 @@
+# This IngressRoute is more secure than the default ingress
+# To use this IngressRoute, please refer to: https://github.com/simon-verbois/microk8s-config-traefik/tree/main
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: opencloud-ingressroute
+  namespace: opencloud
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`cloud.example.org`)
+      kind: Rule
+      services:
+        - name: opencloud-proxy-svc
+          port: http-proxy
+          passHostHeader: true
+      middlewares:
+        - name: coraza-waf
+          namespace: traefik
+        - name: security-headers
+          namespace: traefik
+        - name: rate-limit
+          namespace: traefik
+        - name: geoblock
+          namespace: traefik
+    - match: Host(`wopiserver.example.org`)
+      kind: Rule
+      services:
+        - name: collaboration-wopi-svc
+          port: http-wopi
+          passHostHeader: true
+      middlewares:
+        - name: geoblock
+          namespace: traefik
+    - match: Host(`collabora.example.org`)
+      kind: Rule
+      services:
+        - name: collabora-svc
+          port: http-cool
+          passHostHeader: true
+      middlewares:
+        - name: geoblock
+          namespace: traefik
+  tls:
+    certResolver: ovhresolver
+    domains:
+      - main: "cloud.example.org"
+        sans:
+          - "wopiserver.example.org"
+          - "collabora.example.org"
+    options:
+      name: tls-profile
+      namespace: traefik
+
+# Basic ingress
+#---
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: opencloud-ingress
+#  namespace: opencloud
+#  annotations:
+#    traefik.ingress.kubernetes.io/router.tls.certresolver: ovhresolver
+#spec:
+#  tls:
+#  - hosts:
+#    - "cloud.example.org"
+#    - "wopiserver.example.org"
+#    - "collabora.example.org"
+#  rules:
+#  - host: "cloud.example.org"
+#    http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: opencloud-proxy-svc
+#            port:
+#              name: http-proxy
+#  - host: "wopiserver.example.org"
+#    http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: collaboration-wopi-svc
+#            port:
+#              name: http-wopi
+#  - host: "collabora.example.org"
+#    http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: collabora-svc
+#            port:
+#              name: http-cool
+
+

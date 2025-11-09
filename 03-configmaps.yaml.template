@@ -1,0 +1,126 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: collaboration-configmap
+  namespace: opencloud
+data:
+  COLLABORATION_GRPC_ADDR: "0.0.0.0:9301"
+  COLLABORATION_HTTP_ADDR: "0.0.0.0:9300"
+  MICRO_REGISTRY: "nats-js-kv"
+  MICRO_REGISTRY_ADDRESS: "opencloud-proxy-svc:9233"
+  COLLABORATION_WOPI_SRC: "https://wopiserver.example.org"  # Replace it with your own domain
+  COLLABORATION_APP_NAME: "CollaboraOnline"
+  COLLABORATION_APP_PRODUCT: "Collabora"
+  COLLABORATION_APP_ADDR: "https://collabora.example.org"   # Replace it with your own domain
+  COLLABORATION_APP_ICON: "https://collabora.example.org/favicon.ico"   # Replace it with your own domain
+  COLLABORATION_APP_INSECURE: "true"
+  COLLABORATION_CS3API_DATAGATEWAY_INSECURE: "true"
+  COLLABORATION_LOG_LEVEL: "info"
+  OC_URL: "https://cloud.example.org"   # Replace it with your own domain
+  TZ: "Europe/Paris"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: collabora-configmap
+  namespace: opencloud
+data:
+  aliasgroup1: "https://wopiserver.example.org:443"  # Replace it with your own domain
+  DONT_GEN_SSL_CERT: "YES"
+  TZ: "Europe/Paris"
+  extra_params: "--o:ssl.enable=false --o:ssl.ssl_verification=false --o:ssl.termination=true --o:welcome.enable=false --o:net.frame_ancestors=cloud.example.org"  # Replace it with your own domain
+  username: "admin"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencloud-configmap
+  namespace: opencloud
+data:
+  PROXY_HTTP_ADDR: "0.0.0.0:9200"
+  TZ: "Europe/Paris"
+  OC_ADD_RUN_SERVICES: "notifications"
+  OC_URL: "https://cloud.example.org"  # Replace it with your own domain
+  OC_LOG_LEVEL: "info"
+  OC_LOG_COLOR: "true"
+  OC_LOG_PRETTY: "true"
+  PROXY_TLS: "false"
+  OC_INSECURE: "false"
+  PROXY_ENABLE_BASIC_AUTH: "false"
+  IDM_CREATE_DEMO_USERS: "false"
+  PROXY_AUTOPROVISION_ACCOUNTS: "true"
+  NOTIFICATIONS_SMTP_HOST: "xx.xx.xx.xx"  # Replace it with your smtp server address or FQDN
+  NOTIFICATIONS_SMTP_PORT: "25"
+  NOTIFICATIONS_SMTP_SENDER: "Opencloud <noreply@example.org>"  # Replace it with your own sender address
+  NOTIFICATIONS_SMTP_USERNAME: ""
+  NOTIFICATIONS_SMTP_PASSWORD: ""
+  NOTIFICATIONS_SMTP_INSECURE: ""
+  NOTIFICATIONS_SMTP_AUTHENTICATION: ""
+  NOTIFICATIONS_SMTP_ENCRYPTION: "none"
+  FRONTEND_ARCHIVER_MAX_SIZE: "10000000000"
+  PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
+  OC_PASSWORD_POLICY_BANNED_PASSWORDS_LIST: banned-password-list.txt
+  OC_SHARING_PUBLIC_SHARE_MUST_HAVE_PASSWORD: "false"
+  OC_SHARING_PUBLIC_WRITEABLE_SHARE_MUST_HAVE_PASSWORD: "true"
+  OC_PASSWORD_POLICY_DISABLED: "false"
+  OC_PASSWORD_POLICY_MIN_CHARACTERS: "8"
+  OC_PASSWORD_POLICY_MIN_LOWERCASE_CHARACTERS: "1"
+  OC_PASSWORD_POLICY_MIN_UPPERCASE_CHARACTERS: "1"
+  OC_PASSWORD_POLICY_MIN_DIGITS: "1"
+  OC_PASSWORD_POLICY_MIN_SPECIAL_CHARACTERS: "1"
+  COLLABORA_DOMAIN: "collabora.example.org"  # Replace it with your own domain
+  NATS_NATS_HOST: "0.0.0.0"
+  GATEWAY_GRPC_ADDR: "0.0.0.0:9142"
+  FRONTEND_APP_HANDLER_SECURE_VIEW_APP_ADDR: "eu.opencloud.api.collaboration.CollaboraOnline"
+  GRAPH_AVAILABLE_ROLES: "b1e2218d-eef8-4d4c-b82d-0f1a1b48f3b5,a8d5fe5e-96e3-418d-825b-534dbdf22b99,fb6c3e19-e378-47e5-b277-9732f9de6e21,58c63c02-1d89-4572-916a-870abc5a1b7d,2d00ce52-1fc2-4dbc-8b95-a73b73395f5a,1c996275-f1c9-4e71-abdf-a42f6495e960,312c0871-5ef7-4b3a-85b6-0e4074c64049,aa97fe03-7980-45ac-9e50-b325749fd7e6"
+
+  banned-password-list.txt: |-
+    password
+    12345678
+    123
+    OpenCloud
+    OpenCloud-1
+  csp.yaml: |-
+    directives:
+      child-src:
+        - '''self'''
+      connect-src:
+        - '''self'''
+        - 'blob:'
+        - 'https://raw.githubusercontent.com/opencloud-eu/awesome-apps/'
+      default-src:
+        - '''none'''
+      font-src:
+        - '''self'''
+      frame-ancestors:
+        - '''self'''
+      frame-src:
+        - '''self'''
+        - 'blob:'
+        - 'https://embed.diagrams.net/'
+        - 'https://collabora.example.org/'  # Replace it with your own domain
+        - 'https://docs.opencloud.eu'
+      img-src:
+        - '''self'''
+        - 'data:'
+        - 'blob:'
+        - 'https://raw.githubusercontent.com/opencloud-eu/awesome-apps/'
+        - 'https://collabora.example.org/'  # Replace it with your own domain
+      manifest-src:
+        - '''self'''
+      media-src:
+        - '''self'''
+      object-src:
+        - '''self'''
+        - 'blob:'
+      script-src:
+        - '''self'''
+        - '''unsafe-inline'''
+      style-src:
+        - '''self'''
+        - '''unsafe-inline'''
+
+

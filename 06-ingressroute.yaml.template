@@ -21,8 +21,6 @@ spec:
           namespace: traefik
         - name: security-headers
           namespace: traefik
-        - name: rate-limit
-          namespace: traefik
         - name: geoblock
           namespace: traefik
     - match: Host(`wopiserver.example.org`)
